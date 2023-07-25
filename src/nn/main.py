@@ -179,7 +179,6 @@ class NeuralNetwork():
         dLdb = np.zeros((X.shape[0], next_layer.size, 1))
         dLdW = np.zeros((X.shape[0], layer.size, next_layer.size))
         for i in range(X.shape[0]):
-            #vec = np.dot(dLdZ[i], dzdeta[i].T)
             vec = np.sum(dLdZ[i] * dzdeta[i].T, axis = 1)
             dLdb[i] = np.array([vec]).T
             for j in range(detadW[i].shape[0]):
@@ -191,7 +190,6 @@ class NeuralNetwork():
             
         dLdy = np.zeros((X.shape[0], layer.size))
         for i in range(X.shape[0]):
-            #vec = np.dot(dLdZ[i], dzdeta[i].T)
             vec = np.sum(dLdZ[i] * dzdeta[i].T, axis = 1)
             dLdy[i] = np.dot(vec, detady[i])
                    
