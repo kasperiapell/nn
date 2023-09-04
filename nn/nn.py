@@ -1,6 +1,8 @@
 import numpy as np
 from numpy import *
 
+from activations import *
+
 class Layer():
     def __init__(self, identifier, input_layer, output_layer, 
                  size, weight, bias, prev_layer, next_layer):
@@ -18,6 +20,16 @@ class Layer():
         self.b_gradient = bias
         self.gradient = None
 
+    def inspect_weights(self):
+        print("Layer ", self.id)
+        if self.output_layer:
+            print("Output layer")
+        else:
+            print("Weight:")
+            print(self.W)
+            print("Bias:")
+            print(self.b)
+
 class NeuralNetwork():
     def __init__(self, layer_sizes):
         self.layer_sizes = layer_sizes
@@ -25,11 +37,17 @@ class NeuralNetwork():
         self.layers = []
         self.input_layer = None
         self.output_layer = None
-
         self.initialize_layers()
+        self.initialize_activations()
+
+    def initialize_activations(self):
+        self.act = GELU
+        self.act_grad = GELU_grad
+        self.output_act = softmax
+        self.output_act_grad = softmax_grad
 
     def initialize_layers(self):
-        for i in range(layer_count):
+        for i in range(self.layer_count):
             input_layer = (i == 0)
 
             if i == self.layer_count - 1:
@@ -38,8 +56,8 @@ class NeuralNetwork():
                 bias = None
             else:
                 output_layer = False
-                a = layer_sizes[i + 1]
-                b = layer_sizes[i]
+                a = self.layer_sizes[i + 1]
+                b = self.layer_sizes[i]
                 weight = np.random.uniform(-1, 1, (a, b))
                 bias = np.random.uniform(-1, 1, (a, 1))
 
@@ -57,53 +75,15 @@ class NeuralNetwork():
         self.input_layer = self.layers[0]
         self.output_layer = self.layers[-1]
 
-        for i in range(layer_count - 1):
+        for i in range(self.layer_count - 1):
             self.layers[i].next_layer = self.layers[i + 1]
             if i > 0:
                 self.layers[i].prev_layer = self.layers[i - 1]
    
     def inspect_weights(self):
-        print("Weights: ")
-        print(self.W)
-        print("Biases: ")
-        print(self.bias)
-        
-    def softmax(self, eta):
-        m = np.array([np.max(eta, axis = 1)])
-        S = np.sum(np.exp(eta - m.T), axis = 1)
-        Sma = ma.log(S) + m
-        B = Sma.T.filled(0)
-
-        return np.exp(eta - B)
-    
-    def softmax_der(self, eta):
-        matrices = np.zeros((eta.shape[0], eta.shape[1], eta.shape[1]))
-        for i in range(eta.shape[0]):
-            x = np.array([eta[i]])
-            m = np.max(x)
-            z = np.exp(x)
-            Q = np.dot(z.T, z)
-            S = np.sum(np.exp(x - m), axis = 1)
-            Sma = ma.log(S) + m
-            B = Sma.T.filled(0)
-
-            matr = -1 * (Q * np.exp(- 2 * B))  
-            N = self.softmax(x)
-        
-            np.fill_diagonal(matr, N + np.diag(matr))
-            
-            matrices[i] = matr
-        
-        return matrices
-        
-    def act(self, x):
-        return np.maximum(x, 0)
-    
-    def act_der(self, x):
-        a = x * (x > 0)
-        p = ma.divide(a, a)
-        q = p.data
-        return q
+        for layer in self.layers:
+            layer.inspect_weights()
+            print("\n")
     
     def forward(self, X):
         L = self.input_layer
@@ -117,7 +97,7 @@ class NeuralNetwork():
             layer = self.layers[i]
             layer.input = H
             if layer.output_layer == True:
-                layer.output = self.softmax(H)
+                layer.output = self.output_act(H)
             else:
                 eta = np.dot(H, layer.W.T)
                 eta += tile(layer.b.T, (eta.shape[0], 1))
@@ -167,7 +147,7 @@ class NeuralNetwork():
         X = layer.input        
         dLdZ = next_layer.gradient
         eta = next_layer.input
-        dzdeta = [self.act_der(np.array([e])) for e in eta]
+        dzdeta = [self.output_act_grad(np.array([e])) for e in eta]
         detadW = np.zeros((X.shape[0], next_layer.size, layer.size, next_layer.size))
                           
         for i in range(X.shape[0]):            
