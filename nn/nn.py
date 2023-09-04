@@ -20,6 +20,7 @@ class Layer():
         self.b_gradient = bias
         self.gradient = None
 
+    @staticmethod
     def inspect_weights(self):
         print("Layer ", self.id)
         if self.output_layer:
@@ -40,12 +41,14 @@ class NeuralNetwork():
         self.initialize_layers()
         self.initialize_activations()
 
+    @staticmethod
     def initialize_activations(self):
         self.act = GELU
         self.act_grad = GELU_grad
         self.output_act = softmax
         self.output_act_grad = softmax_grad
 
+    @staticmethod
     def initialize_layers(self):
         for i in range(self.layer_count):
             input_layer = (i == 0)
@@ -80,6 +83,7 @@ class NeuralNetwork():
             if i > 0:
                 self.layers[i].prev_layer = self.layers[i - 1]
    
+    @staticmethod
     def inspect_weights(self):
         for layer in self.layers:
             layer.inspect_weights()
@@ -91,12 +95,12 @@ class NeuralNetwork():
         eta = np.dot(X, L.W.T)
         eta += tile(L.b.T, (eta.shape[0], 1))
         L.output = self.act(eta)
-        
-        for i in range(1, len(self.layers)):
-            H = self.layers[i - 1].output
-            layer = self.layers[i]
+
+        for layer in self.layers[1:]:
+            H = layer.prev_layer.output
             layer.input = H
-            if layer.output_layer == True:
+
+            if layer.output_layer:
                 layer.output = self.output_act(H)
             else:
                 eta = np.dot(H, layer.W.T)
@@ -105,8 +109,7 @@ class NeuralNetwork():
     
     def predict(self, X):
         self.forward(X)
-        probabilities = self.output_layer.output
-        return np.argmax(probabilities, axis = 1)
+        return np.argmax(self.output_layer.output, axis = 1)
     
     def probabilities(self, X):
         self.forward(X)
@@ -118,10 +121,9 @@ class NeuralNetwork():
         seq = list(range(probs.shape[0]))
         ind[(seq, Y.astype(int).T)] = 1
         pred_probs = probs[ind == 1]
+        clean_pred_probs = ma.log(pred_probs)
         
-        pp = ma.log(pred_probs)
-        
-        return -1 * np.sum(pp.filled(0))
+        return -1 * np.sum(clean_pred_probs.filled(0))
     
     def loss_derivative(self, Y):
         probs = self.output_layer.output
@@ -130,15 +132,15 @@ class NeuralNetwork():
         ind[(seq, Y.astype(int))] = 1
         pred_probs = probs * ind
         
-        pp = ma.log(pred_probs)   
-        pd = ma.divide(1, pp)     
-        self.output_layer.gradient = -1 * pd.filled(0)
+        clean_pred_probs = ma.log(pred_probs)   
+        clean_pred_probs = ma.divide(1, clean_pred_probs)     
+        self.output_layer.gradient = -1 * clean_pred_probs.filled(0)
     
     def backward(self, X, Y):
         self.loss_derivative(Y)
-        for i in range(len(self.layers) - 2, -1, -1):
+        for i in range(self.layer_count - 2, -1, -1):
             self.update_gradients(i)
-            
+
     def update_gradients(self, layer_id):
         layer = self.layers[layer_id]
         prev_layer = layer.prev_layer
