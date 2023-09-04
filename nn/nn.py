@@ -5,7 +5,8 @@ from activations import *
 
 class Layer():
     def __init__(self, identifier, input_layer, output_layer, 
-                 size, weight, bias, prev_layer, next_layer):
+                 size, weight, bias, prev_layer, next_layer,
+                 act, act_grad):
         self.id = identifier
         self.input_layer = input_layer
         self.output_layer = output_layer
@@ -19,6 +20,8 @@ class Layer():
         self.W_gradient = weight
         self.b_gradient = bias
         self.gradient = None
+        self.act = act
+        self.act_grad = act_grad
 
     @staticmethod
     def inspect_weights(self):
@@ -31,6 +34,52 @@ class Layer():
             print("Bias:")
             print(self.b)
 
+    @staticmethod
+    def update_gradients(self):
+        prev_layer = self.prev_layer
+        next_layer = self.next_layer
+
+        X = self.input        
+        dLdZ = next_layer.gradient
+        eta = next_layer.input
+        dZdeta = [self.output_act_grad(np.array([e])) for e in eta]
+        detadW = np.zeros((X.shape[0], next_layer.size, self.size, next_layer.size))
+                          
+        for i in range(X.shape[0]):            
+            temp = np.zeros((next_layer.size, self.size, next_layer.size))
+
+            for j in range(next_layer.size):
+                temp[j][:,j] = X[i,:]
+
+            detadW[i] = temp
+                          
+        dLdb = np.zeros((X.shape[0], next_layer.size, 1))
+        dLdW = np.zeros((X.shape[0], self.size, next_layer.size))
+
+        for i in range(X.shape[0]):
+            vec = np.sum(dLdZ[i] * dZdeta[i].T, axis = 1)
+            dLdb[i] = np.array([vec]).T
+            for j in range(detadW[i].shape[0]):
+                dLdW[i] += vec[j] * detadW[i][j]
+                
+        detadY = np.zeros((X.shape[0], next_layer.size, self.size))
+
+        for i in range(X.shape[0]):
+            detadY[i] = layer.W
+            
+        dLdY = np.zeros((X.shape[0], self.size))
+        for i in range(X.shape[0]):
+            vec = np.sum(dLdZ[i] * dZdeta[i].T, axis = 1)
+            dLdY[i] = np.dot(vec, detadY[i])
+                   
+        self.W_gradient = dLdW
+        self.b_gradient = dLdb
+        self.gradient = dLdY
+
+    def update_weights(self, alpha):
+        self.W -= alpha * np.mean(self.W_gradient, axis = 0).T
+        self.b -= alpha * np.mean(self.b_gradient, axis = 0)
+
 class NeuralNetwork():
     def __init__(self, layer_sizes):
         self.layer_sizes = layer_sizes
@@ -40,14 +89,6 @@ class NeuralNetwork():
         self.output_layer = None
         self.initialize_layers()
         self.initialize_layer_connections()
-        self.initialize_activations()
-
-    @staticmethod
-    def initialize_activations(self):
-        self.act = GELU
-        self.act_grad = GELU_grad
-        self.output_act = softmax
-        self.output_act_grad = softmax_grad
 
     @staticmethod
     def initialize_layers(self):
@@ -58,12 +99,16 @@ class NeuralNetwork():
                 output_layer = 1
                 weight = None
                 bias = None
+                act = softmax 
+                act_grad = softmax_grad
             else:
                 output_layer = False
                 a = self.layer_sizes[i + 1]
                 b = self.layer_sizes[i]
                 weight = np.random.uniform(-1, 1, (a, b))
                 bias = np.random.uniform(-1, 1, (a, 1))
+                act = GELU
+                act_grad = GELU_grad
 
             layer = Layer(identifier = i,
                           input_layer = input_layer, 
@@ -72,7 +117,9 @@ class NeuralNetwork():
                           weight = weight, 
                           bias = bias, 
                           prev_layer = None, 
-                          next_layer = None)
+                          next_layer = None,
+                          act = act,
+                          act_grad = act_grad)
 
             self.layers.append(layer)
 
@@ -126,7 +173,7 @@ class NeuralNetwork():
         pred_probs = probs[ind == 1]
         clean_pred_probs = ma.log(pred_probs)
         
-        return -1 * np.sum(clean_pred_probs.filled(0))
+        return -np.sum(clean_pred_probs.filled(0))
     
     def loss_derivative(self, Y):
         probs = self.output_layer.output
@@ -137,57 +184,16 @@ class NeuralNetwork():
         
         clean_pred_probs = ma.log(pred_probs)   
         clean_pred_probs = ma.divide(1, clean_pred_probs)     
-        self.output_layer.gradient = -1 * clean_pred_probs.filled(0)
+        self.output_layer.gradient = -clean_pred_probs.filled(0)
     
     def backward(self, X, Y):
         self.loss_derivative(Y)
-        for i in range(self.layer_count - 2, -1, -1):
-            self.update_gradients(i)
-
-    def update_gradients(self, layer_id):
-        layer = self.layers[layer_id]
-        prev_layer = layer.prev_layer
-        next_layer = layer.next_layer
-
-        X = layer.input        
-        dLdZ = next_layer.gradient
-        eta = next_layer.input
-        dzdeta = [self.output_act_grad(np.array([e])) for e in eta]
-        detadW = np.zeros((X.shape[0], next_layer.size, layer.size, next_layer.size))
-                          
-        for i in range(X.shape[0]):            
-            temp = np.zeros((next_layer.size, layer.size, next_layer.size))
-
-            for j in range(next_layer.size):
-                temp[j][:,j] = X[i,:]
-
-            detadW[i] = temp
-                          
-        dLdb = np.zeros((X.shape[0], next_layer.size, 1))
-        dLdW = np.zeros((X.shape[0], layer.size, next_layer.size))
-        for i in range(X.shape[0]):
-            vec = np.sum(dLdZ[i] * dzdeta[i].T, axis = 1)
-            dLdb[i] = np.array([vec]).T
-            for j in range(detadW[i].shape[0]):
-                dLdW[i] += vec[j] * detadW[i][j]
-                
-        detady = np.zeros((X.shape[0], next_layer.size, layer.size))
-        for i in range(X.shape[0]):
-            detady[i] = layer.W
-            
-        dLdy = np.zeros((X.shape[0], layer.size))
-        for i in range(X.shape[0]):
-            vec = np.sum(dLdZ[i] * dzdeta[i].T, axis = 1)
-            dLdy[i] = np.dot(vec, detady[i])
-                   
-        layer.W_gradient = dLdW
-        layer.b_gradient = dLdb
-        layer.gradient = dLdy
+        for layer in self.layers[1:][::-1]
+            layer.update_gradients()
     
     def update_weights(self, alpha):
         for layer in self.layers[:-1]:
-            layer.W -= alpha * np.mean(layer.W_gradient, axis = 0).T
-            layer.b -= alpha * np.mean(layer.b_gradient, axis = 0)
+            layer.update_weights()
     
     def train(self, train_X, train_Y, alpha, epochs):
         for iteration in range(epochs):
