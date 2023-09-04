@@ -20,50 +20,52 @@ class Layer():
 
 class NeuralNetwork():
     def __init__(self, layer_sizes):
+        self.layer_sizes = layer_sizes
+        self.layer_count = len(layer_sizes)
         self.layers = []
         self.input_layer = None
         self.output_layer = None
-        
-        for i in range((len(layer_sizes))):       
-            if i == 0:
-                input_layer = True
-            else:
-                input_layer = False
-                
-            if i == len(layer_sizes) - 1:
-                output_layer = True
+
+        self.initialize_layers()
+
+    def initialize_layers(self):
+        for i in range(layer_count):
+            input_layer = (i == 0)
+
+            if i == self.layer_count - 1:
+                output_layer = 1
                 weight = None
                 bias = None
             else:
                 output_layer = False
-                a = layer_sizes[i]
-                b = layer_sizes[i + 1]
-                weight = np.random.uniform(-1, 1, (b, a))
-                bias = np.random.uniform(-1, 1, (b, 1))
-            
+                a = layer_sizes[i + 1]
+                b = layer_sizes[i]
+                weight = np.random.uniform(-1, 1, (a, b))
+                bias = np.random.uniform(-1, 1, (a, 1))
+
             layer = Layer(identifier = i,
                           input_layer = input_layer, 
                           output_layer = output_layer, 
-                          size = layer_sizes[i], 
+                          size = self.layer_sizes[i], 
                           weight = weight, 
                           bias = bias, 
                           prev_layer = None, 
                           next_layer = None)
-            
+
             self.layers.append(layer)
-            
+
         self.input_layer = self.layers[0]
         self.output_layer = self.layers[-1]
-            
-        for i in range(len(self.layers) - 1):
+
+        for i in range(layer_count - 1):
             self.layers[i].next_layer = self.layers[i + 1]
             if i > 0:
                 self.layers[i].prev_layer = self.layers[i - 1]
-        
-    def inspect(self):
-        print("Weight")
+   
+    def inspect_weights(self):
+        print("Weights: ")
         print(self.W)
-        print("Bias")
+        print("Biases: ")
         print(self.bias)
         
     def softmax(self, eta):
