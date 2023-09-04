@@ -23,7 +23,6 @@ class Layer():
         self.act = act
         self.act_grad = act_grad
 
-    @staticmethod
     def inspect_weights(self):
         print("Layer ", self.id)
         if self.output_layer:
@@ -34,7 +33,6 @@ class Layer():
             print("Bias:")
             print(self.b)
 
-    @staticmethod
     def update_gradients(self):
         prev_layer = self.prev_layer
         next_layer = self.next_layer
@@ -90,7 +88,6 @@ class NeuralNetwork():
         self.initialize_layers()
         self.initialize_layer_connections()
 
-    @staticmethod
     def initialize_layers(self):
         for i in range(self.layer_count):
             input_layer = (i == 0)
@@ -123,7 +120,6 @@ class NeuralNetwork():
 
             self.layers.append(layer)
 
-    @staticmethod
     def initialize_layer_connections(self):
         self.input_layer = self.layers[0]
         self.output_layer = self.layers[-1]
@@ -133,7 +129,6 @@ class NeuralNetwork():
             if i > 0:
                 self.layers[i].prev_layer = self.layers[i - 1]
    
-    @staticmethod
     def inspect_weights(self):
         for layer in self.layers:
             layer.inspect_weights()
