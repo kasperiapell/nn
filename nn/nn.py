@@ -39,6 +39,7 @@ class NeuralNetwork():
         self.input_layer = None
         self.output_layer = None
         self.initialize_layers()
+        self.initialize_layer_connections()
         self.initialize_activations()
 
     @staticmethod
@@ -75,6 +76,8 @@ class NeuralNetwork():
 
             self.layers.append(layer)
 
+    @staticmethod
+    def initialize_layer_connections(self):
         self.input_layer = self.layers[0]
         self.output_layer = self.layers[-1]
 
