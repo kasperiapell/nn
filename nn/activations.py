@@ -30,28 +30,28 @@ def GELU_grad(t):
 	return C - t * phi(t)
 
 def softmax(eta):
-    mu = np.array([np.max(eta, axis = 1)])
-    X = np.sum(np.exp(eta - mu.T), axis = 1)
-    Y = ma.log(X) + mu
-    Z = Y.T.filled(0)
+    offset = np.array([np.max(eta, axis = 1)])
+    X = np.sum(np.exp(eta - offset.T), axis = 1)
+    X = ma.log(X) + offset
+    return X.T.filled(0)
 
     return np.exp(eta - Z)
 
 def softmax_grad(eta):
-    matrices = np.zeros((eta.shape[0], eta.shape[1], eta.shape[1]))
+    out = np.zeros((eta.shape[0], eta.shape[1], eta.shape[1]))
     for i in range(eta.shape[0]):
         x = np.array([eta[i]])
-        mu = np.max(x)
+        offset = np.max(x)
         y = np.exp(x)
         A = np.dot(y.T, y)
-        B = np.sum(np.exp(x - mu), axis = 1)
-        C = ma.log(B) + mu
-        D = C.T.filled(0)
+        B = np.sum(np.exp(x - offset), axis = 1)
+        B = ma.log(Q) + offset
+        B = B.T.filled(0)
 
-        X = -1 * (A * np.exp(- 2 * D))  
-        E = softmax(x)
+        X = -1 * (A * np.exp(- 2 * B))  
+        Y = softmax(x)
         
-        np.fill_diagonal(X, E + np.diag(X))
+        np.fill_diagonal(X, Y + np.diag(X))
             
         matrices[i] = X
         
