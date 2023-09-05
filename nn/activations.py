@@ -10,11 +10,11 @@ def RELU_grad(t):
     return y.data
 
 def GELU(t):
-	A = 0.5 * t
-	B = np.sqrt(2 / np.pi)
-	C = t + 0.044715 * np.power(t, 3)
+    A = 0.5 * t
+    B = np.sqrt(2 / np.pi)
+    C = t + 0.044715 * np.power(t, 3)
 
-	return A * (1 + np.tanh(B * C))
+    return A * (1 + np.tanh(B * C))
 
 def phi(x):
     A = 1 / np.sqrt(2 * np.pi)
@@ -23,22 +23,22 @@ def phi(x):
     return A * np.exp(B)
 
 def GELU_grad(t):
-	A = np.sqrt(2 / np.pi)
-	B = t + 0.044715 * np.power(t, 3)
-	C = 0.5 * (1 + np.tanh(A * B))
+    A = np.sqrt(2 / np.pi)
+    B = t + 0.044715 * np.power(t, 3)
+    C = 0.5 * (1 + np.tanh(A * B))
 
-	return C - t * phi(t)
+    return C - t * phi(t)
 
 def softmax(eta):
     offset = np.array([np.max(eta, axis = 1)])
     X = np.sum(np.exp(eta - offset.T), axis = 1)
     X = ma.log(X) + offset
-    return X.T.filled(0)
+    X = X.T.filled(0)
 
-    return np.exp(eta - Z)
+    return np.exp(eta - X)
 
 def softmax_grad(eta):
-    out = np.zeros((eta.shape[0], eta.shape[1], eta.shape[1]))
+    matrices = np.zeros((eta.shape[0], eta.shape[1], eta.shape[1]))
     for i in range(eta.shape[0]):
         x = np.array([eta[i]])
         offset = np.max(x)
